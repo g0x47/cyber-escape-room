@@ -1,0 +1,10 @@
+"use client"
+import { useState } from "react"
+import { DesktopWindow } from "./DesktopWindow"
+import { OutlookApp } from "../apps/OutlookApp"
+import { EdgeApp } from "../apps/EdgeApp"
+import { SoftwareCenterApp } from "../apps/SoftwareCenterApp"
+import { FileExplorerApp } from "../apps/FileExplorerApp"
+import { WindowsSecurityApp } from "../apps/WindowsSecurityApp"
+import type { AppId } from "../game/GameProvider"
+export function WindowManager({ openApps, onClose, onOpen, edgeUrl }: { openApps: AppId[]; onClose: (id: AppId) => void; onOpen: (id: AppId, url?: string) => void; edgeUrl?: string }) { const [front, setFront] = useState<AppId>(openApps[openApps.length - 1] || "outlook"); const [minimized, setMinimized] = useState<AppId[]>([]); return <>{openApps.map((id, i) => { const content = id === "outlook" ? <OutlookApp onOpenEdge={(url) => onOpen("edge", url)} /> : id === "edge" ? <EdgeApp initialUrl={edgeUrl} /> : id === "software" ? <SoftwareCenterApp /> : id === "explorer" ? <FileExplorerApp /> : <WindowsSecurityApp />; return <DesktopWindow key={id} title={{ outlook: "Outlook", edge: "Microsoft Edge", software: "Software Center", explorer: "File Explorer", security: "Windows Security" }[id]} icon={{ outlook: "✉", edge: "e", software: "▦", explorer: "▣", security: "⊙" }[id]} onClose={() => onClose(id)} onFocus={() => setFront(id)} zIndex={front === id ? 30 : 20 + i} minimized={minimized.includes(id)} onMinimize={() => setMinimized((m) => [...m, id])}>{content}</DesktopWindow> })}</> }
