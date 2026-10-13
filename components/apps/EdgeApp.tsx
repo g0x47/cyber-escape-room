@@ -1,33 +1,361 @@
+
 "use client"
-import { useEffect, useState } from "react"
+
+import { useState } from "react"
 import { useGame } from "../game/GameProvider"
+import { warnUnsafe } from "../desktop/UnsafeActionWarning"
 import { notify } from "../desktop/NotificationCenter"
 
-type Page = "intranet"|"fake-login"|"search"|"pdfmaster"|"downloads"
-export function EdgeApp({initialUrl="https://intranet.sdaia.gov.sa"}:{initialUrl?:string}){
- const [url,setUrl]=useState(initialUrl); const [menu,setMenu]=useState(false); const [info,setInfo]=useState(false); const [step,setStep]=useState(0); const [email,setEmail]=useState(""); const [password,setPassword]=useState(""); const [loading,setLoading]=useState(false); const [downloadProgress,setDownloadProgress]=useState<number|null>(null); const [smartscreen,setSmartscreen]=useState(false); const [moreInfo,setMoreInfo]=useState(false); const [installing,setInstalling]=useState(false); const [report,setReport]=useState(false)
- const g=useGame();
- useEffect(()=>{setUrl(initialUrl)},[initialUrl])
- const page:Page=url.includes("microsoft-accountverify")?"fake-login":url.includes("bing.com/search")?"search":url.includes("pdfmaster-download.com")?"pdfmaster":url==="edge://downloads"?"downloads":"intranet";
- const submit=()=>{setLoading(true);setEmail("");setPassword("");g.submitFakeCredentials();setTimeout(()=>{setLoading(false);notify("NEW SIGN-IN DETECTED","Account activity detected from an unfamiliar device.")},1600)}
- const download=()=>{g.downloadSuspiciousSoftware();setDownloadProgress(10);let n=10;const id=setInterval(()=>{n+=18;if(n>=100){clearInterval(id);setDownloadProgress(100);notify("Download complete","PDFMaster_Setup.exe · 18.4 MB")}else setDownloadProgress(n)},180)}
- const openInstaller=()=>{g.executeSuspiciousInstaller();setSmartscreen(true);setMoreInfo(false)}
- const runAnyway=()=>{g.bypassSmartScreen();setSmartscreen(false);setInstalling(true);setTimeout(()=>{setInstalling(false);notify("WINDOWS SECURITY","Potentially unwanted application detected. Action recommended.")},1600)}
- const reportSoftware=()=>{g.reportSuspiciousSoftware();setReport(false);notify("Software reported for security review.","PDFMaster_Setup.exe was submitted to Security Operations.")}
- return <div className="relative flex h-full min-h-[420px] flex-col bg-white text-slate-800">
-  <div className="flex items-center gap-2 border-b bg-slate-50 px-3 pt-2"><div className="rounded-t bg-white px-5 py-2 text-xs shadow-sm">{page==="fake-login"?"Microsoft 365":page==="pdfmaster"?"PDFMaster Pro":page==="search"?"Search":page==="downloads"?"Downloads":"SDAIA Intranet"}</div><span className="text-slate-400">+</span></div>
-  <div className="relative flex items-center gap-2 border-b p-2"><button onClick={()=>setInfo(!info)} className="rounded p-1 text-slate-500 hover:bg-slate-100">ⓘ</button><input value={url} onChange={e=>setUrl(e.target.value)} className="flex-1 rounded-full bg-slate-100 px-4 py-2 text-xs outline-none"/><button onClick={()=>setMenu(!menu)} className="rounded px-2 text-lg text-slate-500">⋯</button>
-  {info&&<div className="absolute left-3 top-12 z-20 w-64 rounded-lg border bg-white p-4 text-xs shadow-xl"><div className="font-semibold">Connection is secure</div><div className="mt-3 text-slate-500">Site: <b>{new URL(url.startsWith('http')?url:'https://intranet.sdaia.gov.sa').hostname}</b></div></div>}
-  {menu&&<div className="absolute right-3 top-12 z-20 w-48 rounded-lg border bg-white py-1 text-sm shadow-xl"><button className="block w-full px-4 py-2 text-left hover:bg-slate-50">New tab</button><button onClick={()=>{setUrl('edge://downloads');setMenu(false)}} className="block w-full px-4 py-2 text-left hover:bg-slate-50">Downloads</button><button className="block w-full px-4 py-2 text-left hover:bg-slate-50">History</button><button className="block w-full px-4 py-2 text-left hover:bg-slate-50" onClick={()=>{if(page==='fake-login'){g.reportUnsafeWebsite();notify('Unsafe website reported.','Report submitted to Security Operations.')}else notify('Report submitted.','Thank you for your feedback.');setMenu(false)}}>Report unsafe site</button></div>}</div>
-  <div className="flex-1 overflow-auto bg-slate-50 p-8">
-   {page==="intranet"&&<div className="mx-auto max-w-2xl"><div className="text-xs font-semibold tracking-[.2em] text-blue-700">SDAIA DIGITAL WORKPLACE</div><h1 className="mt-8 text-4xl font-light">Good morning, Faisal.</h1><p className="mt-3 text-slate-500">Your secure corporate workspace</p></div>}
-   {page==="fake-login"&&<div className="mx-auto mt-4 max-w-sm rounded bg-white p-8 shadow-sm"><div className="text-2xl font-semibold text-blue-600">Microsoft</div>{step===0?<><h1 className="mt-8 text-2xl font-semibold">Sign in</h1><p className="mt-2 text-sm text-slate-500">Email, phone, or Skype</p><input value={email} onChange={e=>setEmail(e.target.value)} className="mt-6 w-full border-b border-slate-400 px-1 py-2 text-sm outline-none"/><button onClick={()=>setStep(1)} className="mt-6 rounded bg-blue-600 px-6 py-2 text-sm text-white">Next</button></>:<><h1 className="mt-8 text-2xl font-semibold">Enter password</h1><input type="password" value={password} onChange={e=>setPassword(e.target.value)} className="mt-6 w-full border-b border-slate-400 px-1 py-2 text-sm outline-none"/><button disabled={loading} onClick={submit} className="mt-6 rounded bg-blue-600 px-6 py-2 text-sm text-white">{loading?'Please wait…':'Sign in'}</button>{!loading&&<p className="mt-6 text-xs text-slate-400">Something went wrong. Please try again.</p>}</>}<p className="mt-10 text-center text-[11px] text-slate-400">Simulation environment — never enter your real password.</p></div>}
-   {page==="search"&&<div className="mx-auto max-w-3xl"><div className="mb-7 rounded-full border bg-white px-5 py-3 text-sm shadow-sm">free PDF editor download</div><div className="space-y-6"><button onClick={()=>setUrl('https://pdfmaster-download.com')} className="block w-full text-left"><div className="text-xs text-emerald-700">pdfmaster-download.com</div><div className="mt-1 text-xl text-blue-700 hover:underline">PDFMaster Pro — Free PDF Editor</div><p className="mt-1 text-sm text-slate-600">Edit, convert and sign PDF documents with our free desktop application.</p></button><div><div className="text-xs text-emerald-700">adobe.com</div><div className="mt-1 text-xl text-blue-700">Adobe Acrobat — Official PDF tools</div><p className="mt-1 text-sm text-slate-600">View, create and edit PDF documents.</p></div><div><div className="text-xs text-emerald-700">pdf24.org</div><div className="mt-1 text-xl text-blue-700">PDF24 Tools</div><p className="mt-1 text-sm text-slate-600">Online and desktop PDF tools.</p></div></div></div>}
-   {page==="pdfmaster"&&<div className="mx-auto max-w-4xl rounded-2xl bg-white p-10 shadow-sm"><div className="text-sm font-bold text-indigo-700">PDFMASTER PRO</div><h1 className="mt-6 text-5xl font-semibold tracking-tight">Edit PDFs in seconds.</h1><p className="mt-5 max-w-xl text-lg text-slate-500">A simple desktop editor for forms, conversions and signatures.</p><div className="mt-8 grid max-w-xl grid-cols-2 gap-3 text-sm"><div>✓ Edit PDF text</div><div>✓ Convert PDF to Word</div><div>✓ Electronic signatures</div><div>✓ No subscription required</div></div><div className="mt-8 text-sm">4.8 ★★★★★ <span className="ml-3 text-slate-400">Trusted by 2M+ users</span></div><button onClick={download} className="mt-8 rounded-lg bg-indigo-700 px-7 py-3 font-semibold text-white">FREE DOWNLOAD</button>{downloadProgress!==null&&<div className="mt-6 max-w-md"><div className="flex justify-between text-xs"><span>PDFMaster_Setup.exe</span><span>{downloadProgress>=100?'Completed':downloadProgress+'%'}</span></div><div className="mt-2 h-2 overflow-hidden rounded bg-slate-200"><div className="h-full bg-blue-600" style={{width:`${downloadProgress}%`}}/></div>{downloadProgress>=100&&<button onClick={()=>setUrl('edge://downloads')} className="mt-3 text-sm text-blue-700 underline">Open downloads</button>}</div>}</div>}
-   {page==="downloads"&&<div className="mx-auto max-w-3xl"><h1 className="text-3xl font-semibold">Downloads</h1>{g.suspiciousSoftwareDownloaded?<div className="mt-7 rounded-xl border bg-white p-5 shadow-sm"><div className="flex items-start justify-between"><div><div className="font-semibold">PDFMaster_Setup.exe</div><div className="mt-1 text-xs text-slate-500">pdfmaster-download.com · 18.4 MB · Completed</div></div><div className="flex gap-2"><button onClick={openInstaller} className="rounded border px-3 py-2 text-xs">Open file</button><button onClick={()=>window.dispatchEvent(new CustomEvent('cyber-open-explorer',{detail:{folder:'downloads'}}))} className="rounded border px-3 py-2 text-xs">Show in folder</button><button onClick={()=>setReport(true)} className="rounded border px-3 py-2 text-xs">Report security concern</button></div></div></div>:<p className="mt-8 text-sm text-slate-500">No downloads yet.</p>}</div>}
-  </div>
-  {smartscreen&&<div className="absolute inset-0 z-40 grid place-items-center bg-black/30"><div className="w-[460px] bg-[#0878d1] p-8 text-white shadow-2xl"><div className="text-5xl">▣</div><h2 className="mt-6 text-2xl">Windows protected your PC</h2><p className="mt-4 text-sm text-blue-50">Microsoft Defender SmartScreen prevented an unrecognized app from starting. Running this app might put your PC at risk.</p>{moreInfo&&<div className="mt-5 text-sm"><div>App: <b>PDFMaster_Setup.exe</b></div><div className="mt-1">Publisher: <b>Unknown publisher</b></div></div>}<div className="mt-8 flex gap-3">{moreInfo&&<button onClick={runAnyway} className="border border-white/70 px-5 py-2 text-sm">Run anyway</button>}<button onClick={()=>setSmartscreen(false)} className="border border-white/70 px-5 py-2 text-sm">Don't run</button>{!moreInfo&&<button onClick={()=>setMoreInfo(true)} className="px-3 py-2 text-sm underline">More info</button>}</div></div></div>}
-  {installing&&<div className="absolute inset-0 z-40 grid place-items-center bg-black/25"><div className="w-96 rounded bg-white p-6 shadow-2xl"><h3 className="font-semibold">PDFMaster Pro Setup</h3><p className="mt-4 text-sm text-slate-500">Installing...</p><div className="mt-3 h-2 overflow-hidden rounded bg-slate-200"><div className="h-full w-4/5 animate-pulse bg-blue-600"/></div></div></div>}
-  {report&&<div className="absolute inset-0 z-40 grid place-items-center bg-black/25"><div className="w-96 rounded-xl bg-white p-6 shadow-2xl"><h3 className="text-lg font-semibold">Report software</h3><div className="mt-4 space-y-2 text-sm text-slate-600"><p>File: <b>PDFMaster_Setup.exe</b></p><p>Publisher: Unknown</p><p>Source: pdfmaster-download.com</p><p>Reason: Suspicious or unapproved software</p></div><div className="mt-6 flex justify-end gap-2"><button onClick={()=>setReport(false)} className="rounded border px-4 py-2 text-sm">Cancel</button><button onClick={reportSoftware} className="rounded bg-blue-700 px-4 py-2 text-sm text-white">Submit report</button></div></div></div>}
- </div>
+const permissions = [
+  {
+    name: "Read and change data on all websites",
+    detail: "Can access sensitive information in corporate web applications.",
+  },
+  {
+    name: "Read browsing history",
+    detail: "Can see websites visited by the employee.",
+  },
+  {
+    name: "Read clipboard contents",
+    detail: "May access confidential information copied from other applications.",
+  },
+  {
+    name: "Display notifications",
+    detail: "Can display messages while browsing.",
+  },
+]
+
+export function EdgeApp({
+  onNavigate,
+}: {
+  onNavigate?: (url: string) => void
+}) {
+  const game = useGame()
+
+  const [page, setPage] = useState<"portal" | "extension">("portal")
+  const [extensionsOpen, setExtensionsOpen] = useState(false)
+  const [permissionsOpen, setPermissionsOpen] = useState(false)
+  const [installOpen, setInstallOpen] = useState(false)
+  const [reportOpen, setReportOpen] = useState(false)
+  const [reason, setReason] = useState("")
+
+  const completed = game.edgeCompleted
+
+  const attemptInstall = () => {
+    setInstallOpen(false)
+    game.preventUnsafeAction("suspicious-extension-install")
+    warnUnsafe(
+      "Installing this extension was blocked. " +
+      "It requests excessive permissions. No extension was installed."
+    )
+  }
+
+  const submitReport = () => {
+    if (!reason || completed) return
+
+    game.reportUnsafeWebsite()
+    setReportOpen(false)
+
+    notify(
+      "Security report submitted",
+      "Suspicious browser extension reported to Security Operations."
+    )
+  }
+
+  return (
+    <div className="relative flex h-full min-h-[450px] flex-col bg-white text-slate-800">
+
+      {/* Browser toolbar */}
+      <div className="flex items-center gap-3 border-b bg-slate-100 px-4 py-3 text-sm">
+        <button
+          onClick={() => {
+            setPage("portal")
+            setExtensionsOpen(false)
+          }}
+          title="Home"
+          className="rounded px-2 py-1 hover:bg-slate-200"
+        >
+          ⌂
+        </button>
+
+        <button
+          onClick={() => setPage("portal")}
+          title="Refresh"
+          className="rounded px-2 py-1 hover:bg-slate-200"
+        >
+          ↻
+        </button>
+
+        <div className="flex-1 truncate rounded-full border bg-white px-4 py-2 text-xs text-slate-500">
+          {page === "portal"
+            ? "https://intranet.sdaia.gov.sa"
+            : "edge://extensions"}
+        </div>
+
+        <button
+          onClick={() => setExtensionsOpen(!extensionsOpen)}
+          title="Extensions"
+          aria-label="Extensions"
+          className="rounded-lg border border-transparent px-3 py-2 hover:border-slate-300 hover:bg-white"
+        >
+          <svg
+            width="21"
+            height="21"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.8"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <path d="M9 3h3a2 2 0 0 1 4 0h3a2 2 0 0 1 2 2v4h-3a2 2 0 0 0 0 4h3v6a2 2 0 0 1-2 2h-6v-3a2 2 0 0 0-4 0v3H5a2 2 0 0 1-2-2v-6h3a2 2 0 0 0 0-4H3V5a2 2 0 0 1 2-2h4Z" />
+          </svg>
+        </button>
+
+        <span className="text-slate-500">⋯</span>
+      </div>
+
+      {/* Extensions dropdown */}
+      {extensionsOpen && (
+        <div className="absolute right-8 top-14 z-30 w-72 rounded-xl border bg-white p-4 shadow-xl">
+          <h3 className="font-semibold">Extensions</h3>
+          <p className="mt-1 text-xs text-slate-500">
+            Extensions available in this browser
+          </p>
+
+          <button
+            onClick={() => {
+              setPage("extension")
+              setExtensionsOpen(false)
+            }}
+            className="mt-4 flex w-full items-center gap-3 rounded-lg border p-3 text-left hover:bg-blue-50"
+          >
+            <span className="rounded-lg bg-blue-100 p-3 text-xl text-blue-700">
+              ▤
+            </span>
+            <span className="flex-1">
+              <span className="block text-sm font-semibold">
+                Northstar PDF Helper
+              </span>
+              <span className="block text-xs text-slate-500">
+                Review extension details
+              </span>
+            </span>
+            <span>›</span>
+          </button>
+        </div>
+      )}
+
+      {page === "portal" ? (
+        <div className="flex-1 overflow-y-auto bg-slate-50">
+          <header className="bg-[#123B57] px-8 py-6 text-white">
+            <div className="text-xs uppercase tracking-widest text-blue-200">
+              SDAIA · Training Simulation
+            </div>
+            <h1 className="mt-2 text-2xl font-bold">
+              SDAIA Employee Portal
+            </h1>
+            <p className="mt-2 text-sm text-blue-100">
+              Internal services and employee resources
+            </p>
+          </header>
+
+          <main className="mx-auto max-w-4xl p-8">
+            <div className="rounded-xl border bg-white p-6 shadow-sm">
+              <h2 className="text-xl font-semibold">
+                Welcome to your workspace
+              </h2>
+              <p className="mt-2 text-sm text-slate-500">
+                Access internal services, announcements, and employee tools.
+              </p>
+            </div>
+
+            <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
+              {[
+                ["Employee Services", "HR and self-service requests"],
+                ["IT Support", "Technical support and service requests"],
+                ["Announcements", "Latest internal updates"],
+              ].map(([title, description]) => (
+                <div
+                  key={title}
+                  className="rounded-xl border bg-white p-5 shadow-sm"
+                >
+                  <div className="mb-4 text-2xl text-blue-700">▦</div>
+                  <h3 className="font-semibold">{title}</h3>
+                  <p className="mt-2 text-xs text-slate-500">
+                    {description}
+                  </p>
+                </div>
+              ))}
+            </div>
+
+            <p className="mt-8 text-center text-xs text-slate-400">
+              Simulated employee portal for cybersecurity awareness training.
+            </p>
+          </main>
+        </div>
+      ) : (
+        <div className="flex-1 overflow-y-auto p-7">
+          <button
+            onClick={() => setPage("portal")}
+            className="mb-5 text-sm text-blue-700 hover:underline"
+          >
+            ← Back to portal
+          </button>
+
+          <div className="rounded-xl border bg-white p-6 shadow-sm">
+            <div className="flex flex-wrap items-start gap-4">
+              <div className="rounded-xl bg-blue-100 p-4 text-3xl text-blue-700">
+                ▤
+              </div>
+
+              <div className="min-w-0 flex-1">
+                <h2 className="text-xl font-semibold">
+                  Northstar PDF Productivity Helper
+                </h2>
+                <p className="mt-1 text-sm text-slate-500">
+                  Publisher: Productivity Tools Ltd.
+                </p>
+                <p className="mt-1 text-xs text-slate-400">
+                  Version 2.4.1 · 1,200+ users
+                </p>
+              </div>
+
+              <button
+                onClick={() => setInstallOpen(true)}
+                className="rounded-lg bg-blue-700 px-4 py-2 text-sm text-white"
+              >
+                Add extension
+              </button>
+            </div>
+
+            <p className="mt-5 text-sm text-slate-600">
+              Edit PDFs, convert documents, and boost productivity.
+            </p>
+
+            <button
+              onClick={() => setPermissionsOpen(!permissionsOpen)}
+              className="mt-5 rounded-lg border px-4 py-2 text-sm font-medium hover:bg-slate-50"
+            >
+              {permissionsOpen ? "Hide permissions" : "View permissions"}
+            </button>
+
+            {permissionsOpen && (
+              <div className="mt-5 space-y-3">
+                <h3 className="font-semibold">Requested permissions</h3>
+
+                {permissions.map((permission) => (
+                  <div key={permission.name} className="rounded-lg border p-4">
+                    <p className="text-sm font-semibold">
+                      {permission.name}
+                    </p>
+                    <p className="mt-1 text-xs text-slate-500">
+                      {permission.detail}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            <div className="mt-6 border-t pt-5">
+              <button
+                onClick={() => setReportOpen(true)}
+                disabled={completed}
+                className="rounded-lg border border-blue-600 px-4 py-2 text-sm text-blue-700 disabled:opacity-50"
+              >
+                {completed
+                  ? "Security concern reported"
+                  : "Report security concern"}
+              </button>
+
+              {completed && (
+                <p className="mt-3 text-sm text-green-700">
+                  Extension reported successfully. +200 points.
+                </p>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Install confirmation */}
+      {installOpen && (
+        <div className="absolute inset-0 z-40 flex items-center justify-center bg-black/40 p-4">
+          <div className="w-full max-w-md rounded-xl bg-white p-6 shadow-2xl">
+            <h3 className="text-lg font-semibold">
+              Add Northstar PDF Helper?
+            </h3>
+
+            <p className="mt-3 text-sm text-slate-600">
+              This extension can:
+            </p>
+
+            <ul className="mt-3 list-disc space-y-2 pl-5 text-sm">
+              {permissions.map((p) => (
+                <li key={p.name}>{p.name}</li>
+              ))}
+            </ul>
+
+            <div className="mt-6 flex justify-end gap-3">
+              <button
+                onClick={() => setInstallOpen(false)}
+                className="rounded border px-4 py-2 text-sm"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={attemptInstall}
+                className="rounded bg-blue-700 px-4 py-2 text-sm text-white"
+              >
+                Add extension
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Report dialog */}
+      {reportOpen && (
+        <div className="absolute inset-0 z-40 flex items-center justify-center bg-black/40 p-4">
+          <div className="w-full max-w-md rounded-xl bg-white p-6 shadow-2xl">
+            <h3 className="text-lg font-semibold">
+              Report suspicious extension
+            </h3>
+
+            <p className="mt-2 text-sm text-slate-500">
+              Select a reason for the report.
+            </p>
+
+            <select
+              value={reason}
+              onChange={(e) => setReason(e.target.value)}
+              className="mt-4 w-full rounded-lg border p-3 text-sm"
+            >
+              <option value="">Select reason</option>
+              <option value="permissions">Excessive permissions</option>
+              <option value="unapproved">Unapproved extension</option>
+              <option value="data">Potential data exposure</option>
+              <option value="publisher">Unverified publisher</option>
+            </select>
+
+            <div className="mt-6 flex justify-end gap-3">
+              <button
+                onClick={() => setReportOpen(false)}
+                className="rounded border px-4 py-2 text-sm"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={submitReport}
+                disabled={!reason}
+                className="rounded bg-blue-700 px-4 py-2 text-sm text-white disabled:opacity-40"
+              >
+                Submit report
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  )
 }

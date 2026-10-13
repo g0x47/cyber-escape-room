@@ -1,13 +1,414 @@
+
 "use client"
-import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react"
-export type AppId = "outlook" | "edge" | "software" | "explorer" | "security"
-type State = { score:number; startTime:number|null; finishedAt:number|null; outlookCompleted:boolean; edgeCompleted:boolean; softwareCompleted:boolean; usbCompleted:boolean; finalIncidentCompleted:boolean; incorrectActions:number; hintsUsed:number; bonusRisks:number; phishingLinkClicked:boolean; credentialsEntered:boolean; unknownUsbInserted:boolean; maliciousFileExecuted:boolean; usbReported:boolean; securityIncidentTriggered:boolean; suspiciousSoftwareDownloaded:boolean; suspiciousInstallerExecuted:boolean; smartScreenBypassed:boolean; suspiciousSoftwareReported:boolean; approvedSoftwareCenterViewed:boolean }
-type GameState = State & { elapsedTime:number; startGame:()=>void; addNotification:(title:string,body:string)=>void; reportPhishing:()=>void; clickPhishingLink:()=>void; openPhishingLink:()=>void; submitFakeCredentials:()=>void; reportUnsafeWebsite:()=>void; downloadSuspiciousSoftware:()=>void; executeSuspiciousInstaller:()=>void; bypassSmartScreen:()=>void; reportSuspiciousSoftware:()=>void; viewSoftwareCenter:()=>void; insertUnknownUsb:()=>void; executeMaliciousFile:()=>void; reportUsb:()=>void; reportFinalIncident:()=>void; addIncorrectAction:(p:number)=>void; addBonusRisk:()=>void; useHint:()=>void; reset:()=>void }
-const initial=():State=>({score:0,startTime:null,finishedAt:null,outlookCompleted:false,edgeCompleted:false,softwareCompleted:false,usbCompleted:false,finalIncidentCompleted:false,incorrectActions:0,hintsUsed:0,bonusRisks:0,phishingLinkClicked:false,credentialsEntered:false,unknownUsbInserted:false,maliciousFileExecuted:false,usbReported:false,securityIncidentTriggered:false,suspiciousSoftwareDownloaded:false,suspiciousInstallerExecuted:false,smartScreenBypassed:false,suspiciousSoftwareReported:false,approvedSoftwareCenterViewed:false})
-const C=createContext<GameState|null>(null)
-export function GameProvider({children}:{children:ReactNode}){const [state,setState]=useState(initial);const [elapsedTime,setElapsedTime]=useState(0);useEffect(()=>{if(state.startTime===null){setElapsedTime(0);return}const tick=()=>setElapsedTime(Math.floor(((state.finishedAt??Date.now())-state.startTime!)/1000));tick();if(state.finishedAt!==null)return;const id=window.setInterval(tick,1000);return()=>window.clearInterval(id)},[state.startTime,state.finishedAt]);useEffect(()=>{if(state.outlookCompleted&&state.edgeCompleted&&state.softwareCompleted&&state.usbCompleted&&!state.securityIncidentTriggered)setState(s=>({...s,securityIncidentTriggered:true}))},[state.outlookCompleted,state.edgeCompleted,state.softwareCompleted,state.usbCompleted,state.securityIncidentTriggered]);const update=useCallback((fn:(s:State)=>State)=>setState(fn),[]);const value=useMemo<GameState>(()=>({...state,elapsedTime,startGame:()=>update(s=>s.startTime!==null?s:{...s,startTime:Date.now()}),addNotification:(title,body)=>window.dispatchEvent(new CustomEvent("cyber-notification",{detail:{title,body}})),reportPhishing:()=>update(s=>s.outlookCompleted?s:{...s,outlookCompleted:true,score:s.score+200}),clickPhishingLink:()=>update(s=>({...s,phishingLinkClicked:true})),openPhishingLink:()=>update(s=>({...s,phishingLinkClicked:true})),submitFakeCredentials:()=>update(s=>s.credentialsEntered?s:{...s,credentialsEntered:true,incorrectActions:s.incorrectActions+1,score:Math.max(0,s.score-100)}),reportUnsafeWebsite:()=>update(s=>s.edgeCompleted?s:{...s,edgeCompleted:true,score:s.score+200}),downloadSuspiciousSoftware:()=>update(s=>({...s,suspiciousSoftwareDownloaded:true})),executeSuspiciousInstaller:()=>update(s=>s.suspiciousInstallerExecuted?s:{...s,suspiciousInstallerExecuted:true}),bypassSmartScreen:()=>update(s=>s.smartScreenBypassed?s:{...s,smartScreenBypassed:true,suspiciousInstallerExecuted:true,incorrectActions:s.incorrectActions+1,score:Math.max(0,s.score-150)}),reportSuspiciousSoftware:()=>update(s=>s.suspiciousSoftwareReported?s:{...s,suspiciousSoftwareReported:true,softwareCompleted:s.approvedSoftwareCenterViewed,score:s.approvedSoftwareCenterViewed?s.score+250:s.score}),viewSoftwareCenter:()=>update(s=>s.approvedSoftwareCenterViewed?s:{...s,approvedSoftwareCenterViewed:true,softwareCompleted:s.suspiciousSoftwareReported,score:s.suspiciousSoftwareReported&&!s.softwareCompleted?s.score+250:s.score}),insertUnknownUsb:()=>update(s=>({...s,unknownUsbInserted:true})),executeMaliciousFile:()=>update(s=>s.maliciousFileExecuted?s:{...s,maliciousFileExecuted:true,incorrectActions:s.incorrectActions+1,score:Math.max(0,s.score-150)}),reportUsb:()=>update(s=>s.usbReported?s:{...s,usbReported:true,usbCompleted:true,score:s.score+200}),reportFinalIncident:()=>update(s=>s.finalIncidentCompleted||!s.securityIncidentTriggered?s:{...s,finalIncidentCompleted:true,finishedAt:Date.now(),score:s.score+300}),addIncorrectAction:p=>update(s=>({...s,incorrectActions:s.incorrectActions+1,score:Math.max(0,s.score-p)})),addBonusRisk:()=>update(s=>({...s,bonusRisks:s.bonusRisks+1,score:s.score+50})),useHint:()=>update(s=>({...s,hintsUsed:s.hintsUsed+1,score:Math.max(0,s.score-25)})),reset:()=>setState(initial())}),[state,elapsedTime,update]);return <C.Provider value={value}>{children}</C.Provider>}
-export function useGame(){const c=useContext(C);if(!c)throw new Error("useGame must be used inside GameProvider");return c}
-export const appLabels:Record<AppId,string>={outlook:"Outlook",edge:"Microsoft Edge",software:"Software Center",explorer:"File Explorer",security:"Windows Security"}
-export const appIcons:Record<AppId,string>={outlook:"✉",edge:"e",software:"▦",explorer:"▣",security:"⊙"}
-export function useNotificationSink(sink:(title:string,body:string)=>void){const {addNotification}=useGame();useEffect(()=>{void sink},[sink]);return addNotification}
-export function setNotificationSink(sink:(title:string,body:string)=>void){return sink} 
+
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+  type ReactNode,
+} from "react"
+
+export type AppId =
+  | "outlook"
+  | "edge"
+  | "software"
+  | "explorer"
+  | "security"
+
+type State = {
+  score: number
+  startTime: number | null
+  finishedAt: number | null
+  outlookCompleted: boolean
+  edgeCompleted: boolean
+  softwareCompleted: boolean
+  usbCompleted: boolean
+  finalIncidentCompleted: boolean
+  incorrectActions: number
+  unsafeAttemptKeys: string[]
+  hintsUsed: number
+  bonusRisks: number
+  phishingLinkClicked: boolean
+  credentialsEntered: boolean
+  unknownUsbInserted: boolean
+  maliciousFileExecuted: boolean
+  usbReported: boolean
+  securityIncidentTriggered: boolean
+  suspiciousSoftwareDownloaded: boolean
+  suspiciousInstallerExecuted: boolean
+  smartScreenBypassed: boolean
+  suspiciousSoftwareReported: boolean
+  approvedSoftwareCenterViewed: boolean
+}
+
+type GameState = State & {
+  elapsedTime: number
+  startGame: () => void
+  addNotification: (title: string, body: string) => void
+  reportPhishing: () => void
+  clickPhishingLink: () => void
+  openPhishingLink: () => void
+  submitFakeCredentials: () => void
+  reportUnsafeWebsite: () => void
+  downloadSuspiciousSoftware: () => void
+  executeSuspiciousInstaller: () => void
+  bypassSmartScreen: () => void
+  reportSuspiciousSoftware: () => void
+  viewSoftwareCenter: () => void
+  insertUnknownUsb: () => void
+  executeMaliciousFile: () => void
+  reportUsb: () => void
+  reportFinalIncident: () => void
+  addIncorrectAction: (points: number) => void
+  preventUnsafeAction: (key: string) => void
+  addBonusRisk: () => void
+  useHint: () => void
+  reset: () => void
+}
+
+const initial = (): State => ({
+  score: 0,
+  startTime: null,
+  finishedAt: null,
+  outlookCompleted: false,
+  edgeCompleted: false,
+  softwareCompleted: false,
+  usbCompleted: false,
+  finalIncidentCompleted: false,
+  incorrectActions: 0,
+  unsafeAttemptKeys: [],
+  hintsUsed: 0,
+  bonusRisks: 0,
+  phishingLinkClicked: false,
+  credentialsEntered: false,
+  unknownUsbInserted: true,
+  maliciousFileExecuted: false,
+  usbReported: false,
+  securityIncidentTriggered: false,
+  suspiciousSoftwareDownloaded: false,
+  suspiciousInstallerExecuted: false,
+  smartScreenBypassed: false,
+  suspiciousSoftwareReported: false,
+  approvedSoftwareCenterViewed: false,
+})
+
+const C = createContext<GameState | null>(null)
+
+function recordUnsafeAttempt(
+  state: State,
+  key: string,
+  changes: Partial<State> = {}
+): State {
+  if (state.unsafeAttemptKeys.includes(key)) {
+    return state
+  }
+
+  return {
+    ...state,
+    ...changes,
+    unsafeAttemptKeys: [...state.unsafeAttemptKeys, key],
+    incorrectActions: state.incorrectActions + 1,
+    score: Math.max(0, state.score - 50),
+  }
+}
+
+export function GameProvider({
+  children,
+}: {
+  children: ReactNode
+}) {
+  const [state, setState] = useState<State>(initial)
+  const [elapsedTime, setElapsedTime] = useState(0)
+
+  useEffect(() => {
+    if (state.startTime === null) {
+      setElapsedTime(0)
+      return
+    }
+
+    const tick = () => {
+      const end = state.finishedAt ?? Date.now()
+      setElapsedTime(
+        Math.floor((end - state.startTime!) / 1000)
+      )
+    }
+
+    tick()
+
+    if (state.finishedAt !== null) return
+
+    const id = window.setInterval(tick, 1000)
+
+    return () => window.clearInterval(id)
+  }, [state.startTime, state.finishedAt])
+
+  useEffect(() => {
+    if (
+      state.outlookCompleted &&
+      state.edgeCompleted &&
+      state.softwareCompleted &&
+      state.usbCompleted &&
+      !state.securityIncidentTriggered
+    ) {
+      setState((s) => ({
+        ...s,
+        securityIncidentTriggered: true,
+      }))
+    }
+  }, [
+    state.outlookCompleted,
+    state.edgeCompleted,
+    state.softwareCompleted,
+    state.usbCompleted,
+    state.securityIncidentTriggered,
+  ])
+
+  const update = useCallback(
+    (fn: (s: State) => State) => setState(fn),
+    []
+  )
+
+  const value = useMemo<GameState>(
+    () => ({
+      ...state,
+      elapsedTime,
+
+      startGame: () =>
+        update((s) =>
+          s.startTime !== null
+            ? s
+            : { ...s, startTime: Date.now() }
+        ),
+
+      addNotification: (title, body) => {
+        window.dispatchEvent(
+          new CustomEvent("cyber-notification", {
+            detail: { title, body },
+          })
+        )
+      },
+
+      // OUTLOOK
+
+      reportPhishing: () =>
+        update((s) =>
+          s.outlookCompleted
+            ? s
+            : {
+                ...s,
+                outlookCompleted: true,
+                score: s.score + 200,
+              }
+        ),
+
+      clickPhishingLink: () =>
+        update((s) =>
+          recordUnsafeAttempt(s, "phishing-link", {
+            phishingLinkClicked: true,
+          })
+        ),
+
+      openPhishingLink: () =>
+        update((s) =>
+          recordUnsafeAttempt(s, "phishing-link", {
+            phishingLinkClicked: true,
+          })
+        ),
+
+      // EDGE
+
+      submitFakeCredentials: () =>
+        update((s) =>
+          recordUnsafeAttempt(s, "fake-credentials", {
+            credentialsEntered: true,
+          })
+        ),
+
+      reportUnsafeWebsite: () =>
+        update((s) =>
+          s.edgeCompleted
+            ? s
+            : {
+                ...s,
+                edgeCompleted: true,
+                score: s.score + 200,
+              }
+        ),
+
+      // SOFTWARE
+
+      downloadSuspiciousSoftware: () =>
+        update((s) =>
+          recordUnsafeAttempt(s, "software-download", {
+            suspiciousSoftwareDownloaded: true,
+          })
+        ),
+
+      executeSuspiciousInstaller: () =>
+        update((s) =>
+          recordUnsafeAttempt(s, "software-execution", {
+            suspiciousInstallerExecuted: true,
+          })
+        ),
+
+      bypassSmartScreen: () =>
+        update((s) =>
+          recordUnsafeAttempt(s, "smartscreen-bypass", {
+            smartScreenBypassed: true,
+            suspiciousInstallerExecuted: true,
+          })
+        ),
+
+
+    reportSuspiciousSoftware: () =>
+    update((s) =>
+        s.suspiciousSoftwareReported
+        ? s
+        : {
+            ...s,
+            suspiciousSoftwareReported: true,
+            softwareCompleted: true,
+            score: s.score + 250,
+            }
+    ),
+
+    viewSoftwareCenter: () =>
+    update((s) =>
+        s.approvedSoftwareCenterViewed
+        ? s
+        : {
+            ...s,
+            approvedSoftwareCenterViewed: true,
+            }
+    ),
+
+
+      // USB
+
+      insertUnknownUsb: () =>
+        update((s) =>
+          s.unknownUsbInserted
+            ? s
+            : { ...s, unknownUsbInserted: true }
+        ),
+
+      executeMaliciousFile: () =>
+        update((s) =>
+          recordUnsafeAttempt(s, "usb-execution", {
+            maliciousFileExecuted: true,
+          })
+        ),
+
+      reportUsb: () =>
+        update((s) =>
+          s.usbReported
+            ? s
+            : {
+                ...s,
+                usbReported: true,
+                usbCompleted: true,
+                score: s.score + 200,
+              }
+        ),
+
+      // FINAL INCIDENT
+
+      reportFinalIncident: () =>
+        update((s) =>
+          s.finalIncidentCompleted ||
+          !s.securityIncidentTriggered
+            ? s
+            : {
+                ...s,
+                finalIncidentCompleted: true,
+                finishedAt: Date.now(),
+                score: s.score + 300,
+              }
+        ),
+
+      // SCORING
+
+      addIncorrectAction: (points) =>
+        update((s) => ({
+          ...s,
+          incorrectActions: s.incorrectActions + 1,
+          score: Math.max(0, s.score - points),
+        })),
+
+      preventUnsafeAction: (key) =>
+        update((s) => recordUnsafeAttempt(s, key)),
+
+      addBonusRisk: () =>
+        update((s) => ({
+          ...s,
+          bonusRisks: s.bonusRisks + 1,
+          score: s.score + 50,
+        })),
+
+      useHint: () =>
+        update((s) => ({
+          ...s,
+          hintsUsed: s.hintsUsed + 1,
+          score: Math.max(0, s.score - 25),
+        })),
+
+      reset: () => {
+        setState(initial())
+        setElapsedTime(0)
+      },
+    }),
+    [state, elapsedTime, update]
+  )
+
+  return <C.Provider value={value}>{children}</C.Provider>
+}
+
+export function useGame() {
+  const context = useContext(C)
+
+  if (!context) {
+    throw new Error(
+      "useGame must be used inside GameProvider"
+    )
+  }
+
+  return context
+}
+
+export const appLabels: Record<AppId, string> = {
+  outlook: "Outlook",
+  edge: "Microsoft Edge",
+  software: "Software Center",
+  explorer: "File Explorer",
+  security: "Windows Security",
+}
+
+export const appIcons: Record<AppId, string> = {
+  outlook: "✉",
+  edge: "e",
+  software: "▦",
+  explorer: "▣",
+  security: "⊙",
+}
+
+export function useNotificationSink(
+  sink: (title: string, body: string) => void
+) {
+  const { addNotification } = useGame()
+
+  useEffect(() => {
+    void sink
+  }, [sink])
+
+  return addNotification
+}
+
+export function setNotificationSink(
+  sink: (title: string, body: string) => void
+) {
+  return sink
+}
+
